@@ -1,0 +1,330 @@
+﻿using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.UI;
+using UnityStandardAssets.Characters.FirstPerson;
+
+public class level1 : MonoBehaviour
+{
+    public GameObject size;
+    public GameObject start_cube;
+    public GameObject spawn;
+    public GameObject spotlight1;
+    public GameObject spotlight2;
+    public GameObject FPScamera;
+    public Camera fps;
+    public int D;
+    public int flag = 1;
+    private bool lariant;
+    public Text Life;
+    public Text Score;
+    public int Score_num = 100;
+    public int Life_num = 4;
+    public Text Cubes;
+    public Text Cylinders;
+    public int Cubes_num = 0;
+    public int Cylinders_num = 0;
+    public float[,] maxHeight;
+    public string[,] old;
+    public Vector3 old_pos;
+    public float levelJump, levelLand;
+
+    private void Start()
+    {
+        Score.enabled = false;
+        Life.enabled = false;
+        Cubes.enabled = false;
+        Cylinders.enabled = false;
+        levelJump = FPScamera.transform.position.y;
+        levelLand = FPScamera.transform.position.y;
+    }
+    private void Update()
+    {
+        D = size.transform.gameObject.GetComponent<get>().N;
+        if (flag > 0)
+        {
+            if (D > 0)
+            {
+                start_cube.transform.position = new Vector3(Mathf.Round(D / 2), 0.5f, Mathf.Round(D / 2));
+                start_cube.GetComponent<Renderer>().material.color = Color.magenta;
+                FPScamera.transform.position = new Vector3(Mathf.Round(D / 2), 2.0f, Mathf.Round(D / 2));
+                make_cubes();
+                makeWalls();
+                maxHeight = new float[D, D];
+                old = new string[D, D];
+                for (int i = 0; i < D; i++)
+                {
+                    for (int j = 0; j < D; j++)
+                    {
+                        maxHeight[i, j] = 1;
+                        old[i, j] = " ";
+                    }
+                }
+                makeSpotlight();
+                flag = 0;
+            }
+        }
+        JumpScore();
+        get_cube();
+        calc_score();
+        calc_lives();
+        displayObjects();
+    }
+    void makeWalls()
+    {
+        GameObject wall1 = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        wall1.transform.position = new Vector3(D / 2 + 1.0f, D / 2 + 1.0f, -1.0f);
+        wall1.transform.localScale = new Vector3(D + 3, D, 0.0f);
+        wall1.GetComponent<MeshRenderer>().enabled = false;
+
+        GameObject wall2 = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        wall2.transform.position = new Vector3(D / 2 + 1.0f, D / 2 + 1.0f, D + 1.0f);
+        wall2.transform.localScale = new Vector3(D + 3, D, 0.0f);
+        wall2.GetComponent<MeshRenderer>().enabled = false;
+
+        GameObject wall3 = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        wall3.transform.position = new Vector3(D + 1.0f, D / 2 + 1.0f, D / 2 + 1.0f);
+        wall3.transform.localScale = new Vector3(0.0f, D, D + 3);
+        wall3.GetComponent<MeshRenderer>().enabled = false;
+
+        GameObject wall4 = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        wall4.transform.position = new Vector3(-1.0f, D / 2 + 1.0f, D / 2 + 1.0f);
+        wall4.transform.localScale = new Vector3(0.0f, D, D + 3);
+        wall4.GetComponent<MeshRenderer>().enabled = false;
+    }
+    void makeSpotlight()
+    {
+        spotlight1.SetActive(true);
+        spotlight2.SetActive(true);
+        spotlight1.transform.position = new Vector3(0.0f, D, 0.0f);
+        spotlight1.GetComponent<Light>().intensity = 10;
+        spotlight2.transform.position = new Vector3(D, D, D);
+        spotlight2.GetComponent<Light>().intensity = 10;
+    }
+    void make_cubes()
+    {
+        for (int i = 0; i <= D; i++)
+        {
+            for (int j = 0; j <= D; j++)
+            {
+                if (i == Mathf.Round(D / 2) && j == Mathf.Round(D / 2))
+                    continue;
+                GameObject new_cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                new_cube.transform.position = new Vector3(i, 0.5f, j);
+                if (Random.Range(0, 4) == 0)
+                    new_cube.GetComponent<Renderer>().material.color = Color.red;
+                else if (Random.Range(1, 4) == 1)
+                    new_cube.GetComponent<Renderer>().material.color = Color.yellow;
+                else if (Random.Range(1, 4) == 2)
+                    new_cube.GetComponent<Renderer>().material.color = Color.green;
+                else if (Random.Range(1, 4) == 3)
+                    new_cube.GetComponent<Renderer>().material.color = Color.cyan;
+                else
+                    new_cube.GetComponent<Renderer>().material.color = Color.blue;
+            }
+        }
+        start_cube.GetComponent<Renderer>().material.color = Color.magenta;
+    }
+    void JumpScore()
+    {
+        if (FPScamera.GetComponent<CharacterController>().isGrounded)
+        {
+            levelJump = Mathf.Round(FPScamera.transform.position.y);
+            if (levelJump - levelLand > 0)
+            {
+                if (levelJump - levelLand == 1)
+                    Score_num += 10;
+                else if (levelJump - levelLand == 2)
+                    Score_num += 20;
+            }
+            if (levelJump - levelLand < 0 )
+            {
+                Score_num -= 10 * ((int)(levelLand - levelJump) - 1);
+            }
+            levelLand = Mathf.Round(FPScamera.transform.position.y);
+        }
+    }
+    bool gaps, gaps_c;
+    void get_cube()
+    {
+        Ray ray = fps.ScreenPointToRay(Input.mousePosition);
+        RaycastHit hit;
+
+        if (Physics.Raycast(ray, out hit, 100) && hit.transform != spawn.transform)
+        {
+            if (Physics.Raycast(ray, out hit, 100) && hit.transform.name == "Cylinder")
+            {
+                FPScamera.transform.GetComponent<FirstPersonController>().m_JumpSpeed = 8;
+            }
+            if (Physics.Raycast(ray, out hit, 100) && hit.transform.name == "Cube")
+            {
+                FPScamera.transform.GetComponent<FirstPersonController>().m_JumpSpeed = 5;
+            }
+            if (Input.GetKeyDown(KeyCode.B) && hit.transform != null && Cubes_num > 0 )//&& maxHeight[(int)hit.transform.position.x, (int)hit.transform.position.z] + 1 <= D)
+            {
+                GameObject new_cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                gaps = false;
+                for (int i = 1; i < maxHeight[(int)hit.transform.position.x, (int)hit.transform.position.z]; i++)
+                {
+                    if (!Physics.CheckSphere(new Vector3(hit.transform.position.x, i - 0.5f, hit.transform.position.z), 0.2f))
+                    {
+                        new_cube.transform.position = new Vector3(hit.transform.position.x, i - 0.5f, hit.transform.position.z);
+                        gaps = true;
+                        break;
+                    }
+                }
+                Debug.Log(gaps);
+                if (gaps == false)
+                {
+                    maxHeight[(int)hit.transform.position.x, (int)hit.transform.position.z] += 1;
+                    if (old[(int)hit.transform.position.x, (int)hit.transform.position.z].Equals("Cylinder"))
+                    {
+                        maxHeight[(int)hit.transform.position.x, (int)hit.transform.position.z] += 0.5f;
+                    }
+                    old_pos = new Vector3(hit.transform.position.x, hit.transform.position.y, hit.transform.position.z);
+                    new_cube.transform.position = new Vector3(hit.transform.position.x, maxHeight[(int)hit.transform.position.x, (int)hit.transform.position.z] - 0.5f, hit.transform.position.z);
+                    old[(int)hit.transform.position.x, (int)hit.transform.position.z] = "Cube";
+                }
+
+                if (Random.Range(0, 4) == 0)
+                    new_cube.GetComponent<Renderer>().material.color = Color.red;
+                else if (Random.Range(1, 4) == 1)
+                    new_cube.GetComponent<Renderer>().material.color = Color.yellow;
+                else if (Random.Range(1, 4) == 2)
+                    new_cube.GetComponent<Renderer>().material.color = Color.green;
+                else if (Random.Range(1, 4) == 3)
+                    new_cube.GetComponent<Renderer>().material.color = Color.cyan;
+                else
+                    new_cube.GetComponent<Renderer>().material.color = Color.blue;
+                Cubes_num--;
+                Score_num += 10;
+            }
+            else if (Input.GetKeyDown(KeyCode.C) && hit.transform != null && Cylinders_num > 0 && maxHeight[(int)hit.transform.position.x, (int)hit.transform.position.z] + 2 <= D)
+            {
+                GameObject new_cylinder = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                new_cylinder.GetComponent<Collider>().enabled=false;
+                BoxCollider knob1 = new_cylinder.AddComponent<BoxCollider>();
+                BoxCollider knob2 = new_cylinder.AddComponent<BoxCollider>();
+                gaps_c = false;
+                for (int i = 1; i < maxHeight[(int)hit.transform.position.x, (int)hit.transform.position.z]; i++)
+                {
+                    if (!Physics.CheckSphere(new Vector3(hit.transform.position.x, i - 0.5f, hit.transform.position.z), 0.2f) && !Physics.CheckSphere(new Vector3(hit.transform.position.x, i + 1 - 0.5f, hit.transform.position.z), 0.2f))
+                    {
+                        new_cylinder.transform.position = new Vector3(hit.transform.position.x, i, hit.transform.position.z);
+                        gaps_c = true;
+                        break;
+                    }
+                    else
+                    {
+                        ;
+                    }
+                }
+                if (gaps_c == false)
+                {
+                    maxHeight[(int)hit.transform.position.x, (int)hit.transform.position.z] += 1.5f;
+                    if (old[(int)hit.transform.position.x, (int)hit.transform.position.z].Equals("Cylinder"))
+                    {
+                        maxHeight[(int)hit.transform.position.x, (int)hit.transform.position.z] += 0.5f;
+                    }
+                    old[(int)hit.transform.position.x, (int)hit.transform.position.z] = "Cylinder";
+                    old_pos = new Vector3(hit.transform.position.x, hit.transform.position.y, hit.transform.position.z);
+                    new_cylinder.transform.position = new Vector3(hit.transform.position.x, maxHeight[(int)hit.transform.position.x, (int)hit.transform.position.z] - 0.5f, hit.transform.position.z);
+                }
+                new_cylinder.GetComponent<Renderer>().material.color = Color.black;
+                Cylinders_num--;
+                Score_num += 20;
+            }
+            else if (Input.GetKeyDown(KeyCode.P) && hit.transform != null)
+            {
+                if (hit.transform.GetComponent<Renderer>().material.color == Color.green)
+                {
+                    hit.transform.GetComponent<Renderer>().material.color = Color.red;
+                    Score_num -= 5;
+                    Cubes_num++;
+                }
+                else if (hit.transform.GetComponent<Renderer>().material.color == Color.red)
+                {
+                    hit.transform.GetComponent<Renderer>().material.color = Color.yellow;
+                    Score_num -= 5;
+                    Cubes_num++;
+                }
+                else if (hit.transform.GetComponent<Renderer>().material.color == Color.yellow)
+                {
+                    hit.transform.GetComponent<Renderer>().material.color = Color.blue;
+                    Score_num -= 5;
+                    Cubes_num++;
+                }
+                else if (hit.transform.GetComponent<Renderer>().material.color == Color.blue)
+                {
+                    hit.transform.GetComponent<Renderer>().material.color = Color.cyan;
+                    Score_num -= 5;
+                }
+                else if (hit.transform.GetComponent<Renderer>().material.color == Color.cyan)
+                {
+                    Destroy(hit.transform.gameObject);
+                    //need more shit
+                    Cylinders_num++;
+                    Score_num -= 5;
+                }
+            }
+        }
+    }
+    void calc_score()
+    {
+        if (FPScamera.activeSelf)
+        {
+            Score.enabled = true;
+            Score.text = "Score: ";
+            Score.text += Score_num.ToString();
+        }
+    }
+    void calc_lives()
+    {
+        if (FPScamera.activeSelf)
+        {
+            Life.enabled = true;
+            Life.text = "Lives: ";
+            if (Score_num == 0)
+            {
+                Life_num--;
+                Score_num = 100;
+            }
+            if (FPScamera.transform.position.y < -40)
+            {
+                Life_num--;
+                FPScamera.transform.position = new Vector3(Mathf.Round(D / 2), maxHeight[(int)Mathf.Round(D / 2), (int)Mathf.Round(D / 2)], Mathf.Round(D / 2));
+            }
+            if (FPScamera.transform.position.y >= D)
+            {
+                Life_num++;
+                Score_num += 100;
+                Vector3 pos = new Vector3(Mathf.Round(D / 2), maxHeight[(int)Mathf.Round(D / 2), (int)Mathf.Round(D / 2)], Mathf.Round(D / 2));
+                if (pos.y >= D)
+                {
+                    for (int i = 0; i < D; i++)
+                    {
+                        for (int j = 0; j < D; j++)
+                        {
+                            if (maxHeight[i, j] < pos.y)
+                                pos = new Vector3(i, maxHeight[i, j], j);
+                        }
+                    }
+                }
+                FPScamera.transform.position = pos;
+            }
+            Life.text += Life_num.ToString();
+            if (Life_num == 0)
+                Application.Quit();
+        }
+    }
+    void displayObjects()
+    {
+        if (FPScamera.activeSelf)
+        {
+            Cubes.enabled = true;
+            Cylinders.enabled = true;
+            Cubes.text = "Cubes: " + Cubes_num.ToString();
+            Cylinders.text = "Cylinders: " + Cylinders_num.ToString();
+        }
+    }
+}
