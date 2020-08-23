@@ -11,7 +11,7 @@ Using Unity's basic 3D assets, such as the standard cude and cylinder as well as
 * P to mine a cube that you are looking at.
 * B to place a cube on top of the cube or cylinder that you are looking at and C to place a cylinder.
 * The player gains more cubes that are available for placement, as they mine the cubes from the ground. The cubes change color when mined.
-* Blue cubes cannot be mined further. The player can mine teal cubes for cylinders. The teal cubes dissappear when minded, creating holes on the floor from which the player can fall through.
+* Blue cubes cannot be mined further. Teal cubes can be mined for cylinders. The teal cubes dissappear when minded, creating holes on the floor from which the player can fall through.
 
 ![Image](https://github.com/VictorMegir/Minecraft-clone-with-Unity/blob/master/Screenshots/screenshot%201.png)
 ![Image](https://github.com/VictorMegir/Minecraft-clone-with-Unity/blob/master/Screenshots/screenshot%202.png)
