@@ -1,4 +1,4 @@
-%^%^#$
+
 # Mining game with Unity
 A game built with Unity game engine, where the player mines cubes from the ground and places their own cubes and cylinders.
 
